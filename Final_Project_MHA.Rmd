@@ -1,0 +1,813 @@
+---
+title: "Survival Time Prediction for Breast Cancer Patients"
+author: "By Moe Hein Aung"
+date: "2021-08-03"
+output:
+  html_document:
+    highlight: pygments
+    theme: flatly
+    toc: yes
+    fig_caption: yes
+  pdf_document: default
+urlcolor: cyan
+---
+
+```{r setup, include=FALSE}
+options(scipen = 1, digits = 3, width = 80, fig.align = "center")
+#knitr::opts_chunk$set(warning = FALSE)
+```
+
+## Introduction
+
+I am interested in healthcare data because healthcare always plays an essential role in everybody's life especially in a time when the entire world is dealing with a pandemic. 
+
+Knowing in advance of how symptoms can accurately predict the progression of diseases or how clinical attributes of a patient can tell us of the patient's condition can help both medical practitioners and patients to make important decisions.
+
+For this project, I will employ various statistical analysis techniques learned in the class to predict what significant factors contribute to the overall remaining survival time of breast cancer patients so that patients can make informed decisions such as choosing not to undergo unnecessary and painful surgical and treatment procedures. The focus of this project will be on building a prediction model that predicts the survival time of breast cancer patients.
+
+
+## Background
+
+This is a clinical dataset taken from The Molecular Taxonomy of Breast Cancer International Consortium (METABRIC) database, a Canada-UK Project which contains targeted sequencing data of primary breast cancer samples. The dataset was collected by Professor Carlos Caldas from Cambridge Research Institute and Professor Sam Aparicio from the British Columbia Cancer Centre in Canada
+
+The dataset has 2,509 records and 34 attributes. Based on this dataset We would like to predict the survival time of patients. Below are the attributes of this dataset:
+
+- `Patient ID` - Patient ID
+- `Age at Diagnosis` - Age of the patient at diagnosis
+- `Type of Breast Surgery` - Breast cancer surgery type: 1 is Masectomy, 2 is Breast Conserving
+- `Cancer Type` - Cancer type: 1 is Breast Cancer or 2 is Breast Sarcoma
+- `Cancer Type Detailed` - Detailed Breast cancer types: 1- Breast Invasive Ductal Carcinoma 2- Breast Mixed Ductal and Lobular Carcinoma 3- Breast Invasive Lobular Carcinoma 4- Breast Invasive Mixed Mucinous Carcinoma 5- Metaplastic Breast Cancer
+- `Cellularity` - amount of tumor cells in the specimen post chemotherapy
+- `Chemotherapy` - If patient had chemotherapy or not
+- `Pam50 + Claudin-low subtype` - Pam 50: is a tumor profiling test that helps show whether some estrogen receptor-positive, HER2-negative breast cancers are likely to metastasize (when breast cancer spreads to other organs).
+- `Cohort` - Cohort is a group of subjects who share a defining characteristic (It takes a value from 1 to 8)
+- `ER status measured by IHC` - To assess if estrogen receptors are expressed on cancer cells by using immune-histochemistry (positive/negative)
+- `ER Status` - Cancer cells are positive or negative for estrogen receptors
+- `Neoplasm Histologic Grade` - Determined by pathology if cells look aggressive or not ( value from 1 to 3)
+- `HER2 status measured by SNP6` - To assess if the cancer positive for HER2 or not by using advance molecular techniques (Type of next generation sequencing)
+- `her2_status` - If cancer is positive or negative for HER2
+- `Tumor Other Histologic Subtype` - Type of cancer based on microscopic examination of the cancer tissue (It takes a value of 'Ductal/NST', 'Mixed', 'Lobular', 'Tubular/ cribriform', 'Mucinous', 'Medullary', 'Other', 'Metaplastic' )
+- `Hormone Therapy` - Whether or not the patient had hormonal as a treatment 
+- `Inferred Menopausal State` - Whether the patient is in post menopausal or not 
+- `Integrative Cluster` - Molecular subtype of the cancer based on some gene expression (It takes a value from '4ER+', '3', '9', '7', '4ER-', '5', '8', '10', '1', '2', '6')
+- `Primary Tumor Laterality` - Whether it is involving the right breast or the left breast
+- `Lymph nodes examined positive` - Samples of the lymph node taken during surgery to see if there were involved by the cancer
+- `Mutation Count` - Number of gene that has relevant mutations
+- `Nottingham prognostic index` - It is used to determine prognosis following surgery for breast cancer. Its value is calculated using the size of the tumor, the number of involved lymph nodes and the stage of the tumor.
+- `Oncotree Code` - The OncoTree is an open-source ontology for standardizing cancer type diagnosis from a clinical perspective by assigning each diagnosis a unique OncoTree code.
+- `Overall Survival (Months)` - Duration from the time of the intervention to death
+- `Overall Survival Status` - Wether the patient is alive or dead.
+- `PR Status` -Cancer cells are positive or negative for progesterone receptors
+- `Radio Therapy` - Whether or not the patient had radio as a treatment 
+- `Relapse Free Status (Months)` - Relapse free duration
+- `Relapse Free Status` - Relapse status
+- `Sex` - Male or Female
+- `3-Gene classifier subtype` - Three Gene classifier subtype It takes a value from 'ER-/HER2-', 'ER+/HER2- High Prolif', nan, 'ER+/HER2- Low Prolif','HER2+'
+- `Tumor Size` - Tumor size measured by imaging techniques
+- `Tumor Stage` - Stage of the cancer based on the involvement of surrounding structures, lymph nodes and distant spread
+- `Patient's Vital Status` - Whether the patient is alive, died to cancer or died of other causes
+
+
+To learn more details, see the two variations of this dataset below from kaggle:
+
+https://www.kaggle.com/gunesevitan/breast-cancer-metabric
+
+https://www.kaggle.com/raghadalharbi/breast-cancer-gene-expression-profiles-metabric
+
+## Methods
+
+
+### Data Preparation
+
+```{r message=FALSE}
+library(readr)
+dataset = read_csv("breast_cancer.csv")
+```
+
+First I will rename the names of attributes for ease of workability as follows: 
+
+```{r}
+colnames(dataset) = c("patient_id",
+                      "age",
+                      "surgery_type",
+                      "cancer_type",
+                      "cancer_type_det",
+                      "cellularity",
+                      "chemo",
+                      "pam50",
+                      "cohort",
+                      "er_stat_ihc",
+                      "er_stat",
+                      "neohg",
+                      "her2_snp6",
+                      "her2",
+                      "tumor_type",
+                      "hormone_therapy",
+                      "inf_meno",
+                      "int_cluster",
+                      "tumor_lat",
+                      "lymph_pos",
+                      "mutation_count",
+                      "npi",
+                      "oncotree_code",
+                      "survival_time",
+                      "survival",
+                      "pr_status",
+                      "radio_therapy",
+                      "relapse_free",
+                      "relapse_status",
+                      "sex",
+                      "gene_subtype",
+                      "tumor_size",
+                      "tumor_stage",
+                      "vital_status")
+```
+
+Next I will remove the column `patient_id` because this information will be irrelevant to our analysis. I will also remove the column `sex` because it only contains one value, `Female`. I've also decided to drop the column `cohort` because it's a redundant variable and takes up too many levels as a factor variable. I also noticed that on row 187, `survival_time` is recorded as 0. I believe this is a recording error and therefore will remove this particular observation. 
+
+```{r}
+dataset = dataset[, -1]
+sex_index = grep("sex", colnames(dataset))
+dataset[sex_index] = NULL
+cohort_index = grep("cohort", colnames(dataset))
+dataset[cohort_index] = NULL
+dataset = dataset[-187, ]
+colnames(dataset)
+length(colnames(dataset))
+```
+
+Let's coerce some of the attributes into factor variables.
+
+```{r}
+cols = c("surgery_type", "cancer_type", "cancer_type_det", "cellularity",
+         "chemo", "pam50", "er_stat_ihc", "er_stat", "neohg",
+         "her2_snp6", "her2", "tumor_type", "hormone_therapy",
+         "inf_meno", "int_cluster", "tumor_lat", "oncotree_code",
+         "survival", "pr_status", "radio_therapy", "relapse_status",
+         "gene_subtype", "vital_status", "tumor_stage")
+dataset[cols] = lapply(dataset[cols], factor)
+sapply(dataset, class)
+```
+
+
+### Data Exploration
+
+Here, I will perform some visualizations for variables of initial interest.
+
+```{r message=FALSE}
+library(ggplot2)
+```
+
+```{r message=FALSE}
+tumorDF = data.frame(survival_time = dataset$survival_time, tumor_size = dataset$tumor_size)
+tumorDF = tumorDF[complete.cases(tumorDF), ]
+ggplot(tumorDF, aes(x = tumor_size, y = survival_time)) + geom_point(col = "steelblue") + geom_smooth(method=lm, color="firebrick3") + ggtitle("Survival Time vs. Tumor Size") 
+```
+
+As expected `survival_time` decreases as the `tumor_size` increases. 
+
+```{r message=FALSE}
+lymphDF = data.frame(survival_time = dataset$survival_time, lymph_pos = dataset$lymph_pos)
+lymphDF = lymphDF[complete.cases(lymphDF), ]
+ggplot(lymphDF, aes(x = lymph_pos, y = survival_time)) + geom_point(col = "steelblue") +
+geom_smooth(method=lm, color="firebrick3") + ggtitle("Survival Time vs. Positive Lymph Nodes") 
+```
+
+As expected `survival_time` decreases as the number of positive lymph nodes increase. 
+
+```{r message=FALSE}
+ageDF = data.frame(survival_time = dataset$survival_time, age = dataset$age)
+ageDF = ageDF[complete.cases(ageDF), ]
+ggplot(ageDF, aes(x = age, y = survival_time)) + geom_point(col = "steelblue") + geom_smooth(method=lm, color="firebrick3") + ggtitle("Survival Time vs. Age") 
+```
+
+Age data is too scattered however the regression line tells us that as `age` increases, `survival_time` decreases.
+
+```{r message=FALSE}
+relapseDF = data.frame(survival_time = dataset$survival_time, relapse_free = dataset$relapse_free)
+relapseDF = relapseDF[complete.cases(relapseDF), ]
+ggplot(relapseDF, aes(x = relapse_free, y = survival_time)) + geom_point(col = "steelblue") + geom_smooth(method=lm, color="firebrick3") + ggtitle("Survival Time vs. Relapse Free Duration") 
+```
+
+As expected `survival_time` decreases as the number of relapse free duration increases. 
+
+```{r message=FALSE}
+library(corrplot)
+```
+
+```{r}
+corrDF = cor(na.omit(dataset)[sapply(dataset, is.numeric)])
+corrplot(corrDF, method = "ellipse")
+```
+
+The correlation plot matrix above looks pretty good. The only significant multicollinearity occurs between `npi` and `lymph_pos`. The plot also suggests that `relapse_free` might be a good predictor for our variable of interest, `survival_time`.
+
+### Data Cleaning
+
+In this section I will deal with missing data values in the data set.
+First, we will look at the option to remove all rows with missing values in the dataset.
+
+```{r}
+removed = dataset[complete.cases(dataset), ]
+nrow(removed)
+```
+
+Here, we see that the number of observations have been reduced to `1092` from `2509` observations. We will therefore explore other methods since we do not want to remove over half of our observations from the beginning.
+
+Closer inspection of this overall dataset revealed that that all the observations after row 1986 have a lot of columns with missing values. This may be because the patients are new and a lot of their lab test results are not yet available to be recorded or due to some other reasons. I find it reasonable to remove these observations from our dataset.
+
+```{r}
+reduced = dataset[1:1985, ]
+```
+
+Next, I will check to see which columns still have missing values, counts of missing values and whether they are numeric or factor variables.
+
+```{r message=FALSE}
+library(kableExtra)
+```
+
+```{r}
+missing = reduced[, colSums(is.na(reduced)) > 0]
+missing_data = data.frame(
+    Variable = colnames(missing),
+    Type = sapply(missing, class),
+    Missing_Count = colSums(is.na(missing))
+)
+
+kable(missing_data, row.names = FALSE, align="c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+Next, I will replace missing numeric variables with the Mean of the column and missing factor variables with the Mode of the column.
+
+```{r}
+# Create modified dataset
+modified = reduced
+
+for(i in names(modified)) {  
+  # Replace NA in all numeric columns
+  if (matrix(sapply(modified[i], is.numeric))[1,1] == TRUE) {
+    
+modified[ ,i][is.na(modified[ ,i])] = colMeans(modified[ ,i], na.rm=TRUE)
+   
+  }
+}
+```
+
+```{r}
+Mode = function(x) {
+  names(which.max(table(x)))
+}
+
+for(i in names(modified)) {  
+  
+  # Replace NA in all factor columns
+  if (matrix(sapply(modified[i], is.factor))[1,1] == TRUE) {
+    
+ modified[ , i][is.na(modified[ , i])] = sapply(modified[ , i], Mode)
+  
+  }
+  
+}
+```
+
+```{r}
+colSums(is.na(modified))
+```
+
+Now the modified dataset does not contain anymore missing values and it's are ready for analysis. One thing to note is that for most factor variables with low missing data count or for factor variables with one clear Mode, it is reasonable to replace the missing values with the Mode value. Below are a barplots of the few variables that did not have a clear Mode and a significant number of missing values. Let's take note of these.
+
+```{r}
+ggplot(data=reduced, aes(x=tumor_lat)) + geom_bar(fill="steelblue") + ggtitle("Barplot of Tumor Laterality") 
+ggplot(data=reduced, aes(x=tumor_stage)) + geom_bar(fill="steelblue") + ggtitle("Barplot of Tumor Stage")  
+ggplot(data=reduced, aes(x=gene_subtype)) + geom_bar(fill="steelblue") + ggtitle("Barplot of Gene Subtype")  
+```
+
+
+At this stage, I will perform a train/test split of our dataset so that I can evaluate our selected models once model building is complete. The dataset will be divided into a 70% training set and 30% testing set.
+
+```{r warning = FALSE}
+
+set.seed(420)
+
+size = round(nrow(modified) * 0.70, 0)
+
+trainIndex = sample(1:nrow(modified), size)
+
+
+train_set <- modified[trainIndex, ]
+test_set <- modified[-trainIndex, ]
+```
+
+
+
+### Model Building
+
+
+
+```{r message = FALSE}
+# Defining useful functions
+library(lmtest)
+
+calc_rmse  = function(actual, predicted) {
+  sqrt(mean((actual - predicted) ^ 2))
+}
+
+get_num_params = function(model) {
+  length(coef(model))
+}
+
+get_adj_r2 = function(model) {
+  summary(model)$adj.r.squared
+}
+
+plot_fit_resid = function(model, pcol="steelblue", lcol="firebrick3", title = "")
+  {
+  plot(fitted(model), resid(model), 
+         col = pcol, pch = 20, cex = 1.5, 
+         xlab = "Fitted", ylab = "Residuals",
+         main = paste("Fitted vs. Residuals ", title))
+    abline(h = 0, col = lcol, lwd = 2)
+    grid()
+}
+
+qqplot = function(model, pcol="steelblue", lcol="firebrick3", title = "")
+  {
+   qqnorm(resid(model), col = pcol, pch = 20, cex = 1.5, main = paste("Normal Q-Q Plot", title))
+    qqline(resid(model), col = lcol, lwd = 2)
+    grid()
+}
+
+
+
+```
+
+**Additive Model**
+```{r cache=TRUE}
+# Basic Additive Model
+add_model = lm(survival_time ~ ., data=train_set)
+
+add_param = get_num_params(add_model)
+add_aic = extractAIC(add_model)[2]
+add_rmse = sqrt(mean(resid(add_model)^2))
+add_r2 = get_adj_r2(add_model)
+```
+
+**2nd Order Interaction Model**
+```{r cache=TRUE}
+inter_model_2nd = lm(survival_time ~ (.)^2, data=train_set)
+```
+
+
+Checking if 2nd order Interaction is important:
+```{r}
+# Check 2nd Order Interaction
+p_value = anova(add_model, inter_model_2nd)[2, 6]
+p_value
+```
+
+The extremely low p-value from ANOVA F-Test tells us that the second order interaction model is preferred over the simple additive model.
+
+
+**M1 AIC Interaction Model** - selected from 2nd order interaction model
+```{r cache=TRUE}
+# Model 1
+intercept_model = lm(survival_time ~ 1, data=train_set)
+m1 = step(intercept_model, direction="both", 
+                   scope=formula(inter_model_2nd), trace=0)
+
+m1_param = get_num_params(m1)
+m1_aic = extractAIC(m1)[2]
+m1_rmse = sqrt(mean(resid(m1)^2, na.rm=TRUE))
+m1_r2 = get_adj_r2(m1)
+```
+
+
+
+**2nd Order Polynomial Model**
+```{r cache=TRUE}
+# Check 2nd Order Polynomial
+poly_model_2nd = lm(survival_time ~ age + surgery_type + cancer_type
+        + cancer_type_det + cellularity + chemo + pam50 + er_stat_ihc
+        + er_stat + neohg + her2_snp6 + her2 + tumor_type 
+        +  hormone_therapy + inf_meno + int_cluster + tumor_lat
+        + lymph_pos + mutation_count + npi + oncotree_code 
+        + survival + pr_status + radio_therapy 
+        + relapse_free + relapse_status + gene_subtype  
+        + tumor_size + tumor_stage + vital_status
+        + poly(age, 2) + poly(lymph_pos, 2) + poly(mutation_count, 2)
+        + poly(npi, 2) + poly(relapse_free, 2) + poly(tumor_size,2),
+          data=train_set)
+```
+
+
+Checking if 2nd order Poly terms are important:
+```{r}
+p_value = anova(add_model, poly_model_2nd)[2, 6]
+p_value
+```
+
+The low p-value from ANOVA F-Test tells me that the second order polynomial model is preferred over the simple additive model.
+
+
+**M2 AIC Polynomial Model** -- selected from 2nd Order Polynomial model
+```{r cache=TRUE, warning=FALSE}
+# Model 2
+intercept_model = lm(survival_time ~ 1, data=train_set)
+m2 = step(intercept_model, direction="both", 
+                   scope=formula(poly_model_2nd), trace=0)
+
+m2_param = get_num_params(m2)
+m2_aic = extractAIC(m2)[2]
+m2_rmse = sqrt(mean(resid(m2)^2))
+m2_r2 = get_adj_r2(m2)
+```
+
+
+
+**M3 - With Chosen Polynomial and Interaction terms**
+```{r cache=TRUE, warning=FALSE}
+# Model 3 
+m3 = lm(survival_time ~ relapse_free + relapse_status + vital_status
+            + tumor_stage + npi + age + er_stat + chemo + pr_status
+            + hormone_therapy + relapse_status:vital_status
+            + tumor_stage:relapse_status + relapse_free:relapse_status
+            + relapse_free:vital_status + npi:relapse_status + 
+            + npi:vital_status + age:relapse_status + age:vital_status
+            + er_stat:vital_status + er_stat:chemo + age:chemo
+            + chemo:relapse_status + relapse_free:pr_status 
+            + er_stat:hormone_therapy + hormone_therapy:relapse_status
+            + hormone_therapy:vital_status + age:hormone_therapy
+            + her2_snp6 + poly(relapse_free, 2)
+            + poly(mutation_count, 2) + poly(lymph_pos, 2),
+              data=train_set)
+
+m3_param = get_num_params(m3)
+m3_aic = extractAIC(m3)[2]
+m3_rmse = sqrt(mean(resid(m3)^2))
+m3_r2 = get_adj_r2(m3)
+```
+
+
+**M1, M2, and M3**
+```{r}
+model_names = c("add_model", "m1", "m2", "m3")
+num_param = c(add_param,m1_param, m2_param, m3_param)
+aics = c(add_aic, m1_aic, m2_aic, m3_aic)
+rmses = c(add_rmse, m1_rmse, m2_rmse, m3_rmse)
+adj_r2s = c(add_r2, m1_r2, m2_r2, m3_r2)
+
+model_data = data.frame(model_names,
+                       num_param,
+                       aics,
+                       rmses,
+                       adj_r2s)
+
+kable(model_data, row.names = FALSE, align="c",
+     col.names = c("Model",
+                   "Number of Parameters",
+                   "AIC",
+                   "RMSE",
+                   "Adjusted R^2")) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+Models `m1` and `m3` are comparable in terms of RMSE and $R^2$. However model `m1` uses a lot less number of predictors, therefore, I will consider `m1` to be the best model a this point. Next, let's explore applying transformations to this selected `m1` model to see if we can do better. Specifically, I will perform Log, Box-Cox and Square Root transformations of my response variable.   
+
+**M1 Model**
+```{r}
+m1$call
+```
+
+
+**M1 Log Model**
+```{r cache=TRUE, warning = FALSE}
+# Model 1 Log
+m1_log = lm(formula = log(survival_time) ~ relapse_free + relapse_status + 
+                      vital_status + npi + pr_status + age + chemo + inf_meno + 
+                      survival + tumor_stage + relapse_status:vital_status + relapse_status:npi + 
+                      relapse_free:relapse_status + relapse_free:vital_status + 
+                      vital_status:npi + relapse_free:pr_status + relapse_status:age + 
+                      vital_status:age + relapse_status:chemo + relapse_status:inf_meno + 
+                      npi:pr_status + relapse_free:survival + relapse_status:tumor_stage + 
+                      npi:chemo + pr_status:age + pr_status:inf_meno + pr_status:survival, 
+                      data = train_set)
+
+m1_log_rmse = calc_rmse(train_set$survival_time, exp(predict(m1_log, train_set)))
+m1_log_r2 = get_adj_r2(m1_log)
+```
+
+**Applying Box-cox**
+```{r message=FALSE}
+library(MASS)
+bc = boxcox(m1, plotit = TRUE, lambda = seq(0.1, 1.5, by = 0.1))
+(lambda = bc$x[which.max(bc$y)])
+```
+
+**M1 Boxcox Model**
+```{r cache=TRUE, warning = FALSE}
+# Model 1 Box-Cox
+m1_bc = lm((((survival_time^lambda) - 1) / lambda) ~ relapse_free + relapse_status + 
+                      vital_status + npi + pr_status + age + chemo + inf_meno + 
+                      survival + tumor_stage + relapse_status:vital_status + relapse_status:npi + 
+                      relapse_free:relapse_status + relapse_free:vital_status + 
+                      vital_status:npi + relapse_free:pr_status + relapse_status:age + 
+                      vital_status:age + relapse_status:chemo + relapse_status:inf_meno + 
+                      npi:pr_status + relapse_free:survival + relapse_status:tumor_stage + 
+                      npi:chemo + pr_status:age + pr_status:inf_meno + pr_status:survival, 
+                      data = train_set)
+
+m1_bc_rmse = calc_rmse(train_set$survival_time, 
+                exp(log(lambda * predict(m1_bc, train_set) + 1)/lambda)
+                       )
+m1_bc_r2 = get_adj_r2(m1_bc)
+```
+
+
+
+**M1 Sqrt Model**
+```{r cache=TRUE, warning = FALSE}
+# Model 1 SQRT
+m1_sqrt = lm(formula = sqrt(survival_time) ~ relapse_free + relapse_status + 
+                      vital_status + npi + pr_status + age + chemo + inf_meno + 
+                      survival + tumor_stage + relapse_status:vital_status + relapse_status:npi + 
+                      relapse_free:relapse_status + relapse_free:vital_status + 
+                      vital_status:npi + relapse_free:pr_status + relapse_status:age + 
+                      vital_status:age + relapse_status:chemo + relapse_status:inf_meno + 
+                      npi:pr_status + relapse_free:survival + relapse_status:tumor_stage + 
+                      npi:chemo + pr_status:age + pr_status:inf_meno + pr_status:survival, 
+                      data = train_set)
+
+m1_sqrt_rmse = calc_rmse(train_set$survival_time, 
+                         (predict(m1_sqrt, train_set))^2)
+m1_sqrt_r2 = get_adj_r2(m1_sqrt)
+```
+
+
+```{r}
+model_names = c("m1", "m1_log", "m1_bc", "m1_sqrt")
+rmses = c(m1_rmse, m1_log_rmse, m1_bc_rmse, m1_sqrt_rmse)
+adj_r2s = c(m1_r2, m1_log_r2, m1_bc_r2, m1_sqrt_r2)
+
+model_data = data.frame(model_names,
+                       rmses,
+                       adj_r2s)
+
+kable(model_data, row.names = FALSE, align="c",
+     col.names = c("Model",
+                   "RMSE",
+                   "Adjusted R^2")) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+The `m1` and `m1_bc` models are comparable in terms of RMSE and Adjusted $R^2$ while `m1_sqrt` performs just slightly worse. I will run model diagnostics and perform evaluation on these 3 models. Since the log transformed model `m1_log` performs a lot worse than others, I will drop this model at this point.
+
+### Model Diagnostics
+
+
+
+```{r fig.height=6, fig.width=9}
+par(mfrow = c(1, 3))
+plot_fit_resid(m1, title = "m1")
+plot_fit_resid(m1_bc, title = "m1_bc")
+plot_fit_resid(m1_sqrt, title = "m1_sqrt")
+```
+
+Based on the Fitted vs. Residuals plots, all three models do not violate the linearity assumption which is important to satisfy for a prediction model. The box-cox transformed model, `m3_bc` to do best in terms of meeting the constant variance assumption.
+
+```{r message=FALSE}
+# BP Test
+
+m1_bp = bptest(m1)$p.value
+m1_bc_bp = bptest(m1_bc)$p.value
+m1_sqrt_bp = bptest(m1_sqrt)$p.value
+```
+
+
+Based on the Q-Q plots, none of these models meet the normality assumption. 
+
+```{r fig.height=6, fig.width=9}
+par(mfrow = c(1, 3))
+qqplot(m1, title = "m1")
+qqplot(m1_bc, title = "m1_bc")
+qqplot(m1_sqrt, title = "m1_sqrt")
+```
+
+```{r}
+# Shapiro Test
+m1_sh = shapiro.test(resid(m1))$p.value
+m1_bc_sh = shapiro.test(resid(m1_bc))$p.value
+m1_sqrt_sh = shapiro.test(resid(m1_sqrt))$p.value
+
+```
+
+
+```{r}
+model_names = c("m1", "m1_box_cox", "m1_sqrt")
+bps = c(m1_bp, m1_bc_bp, m1_sqrt_bp)
+shs = c(m1_sh, m1_bc_sh, m1_sqrt_sh)
+
+model_data = data.frame(model_names,
+                       bps,
+                       shs)
+
+kable(model_data, row.names = FALSE, align="c",
+     col.names = c("Model",
+                   "BP Test P-value",
+                   "Shapiro Test P-value"),
+     digits = 88) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+The low p-values from the Breusch-Pagan test and Shapiro-Wilk test tells us that these models do not meet the constant variance or normality assumptions. The violation of normality assumption is not ideal but acceptable to us because we have a large dataset and the Central Limit Theorem states that for a sufficiently large sample size (> 500), the distribution of sample variable approximates a normal distribution. 
+
+However, the violation of BP test for constant variance could be concerning. Therefore, in the next section, I will further evaluate each of these models on the testing dataset.
+
+
+### Model Evaluation
+
+```{r warning = FALSE}
+# Train and Test RMSE
+
+m1_rmse_tst = calc_rmse(test_set$survival_time, predict(m1, test_set))
+
+m1_bc_rmse_tst = calc_rmse(test_set$survival_time, 
+                 exp(log(lambda * predict(m1_bc, test_set) + 1)/lambda))
+ 
+m1_sqrt_rmse_tst = calc_rmse(test_set$survival_time, 
+                         (predict(m1_sqrt, test_set))^2)
+
+models_name = c("m1", "m1_bc", "m1_sqrt")
+train_rmse = c(m1_rmse, m1_bc_rmse, m1_sqrt_rmse)
+test_rmse = c(m1_rmse_tst, m1_bc_rmse_tst, m1_sqrt_rmse_tst)
+adj_r2s = c(m1_r2, m1_bc_r2, m1_sqrt_r2)
+
+rmses_data = data.frame(model_names, train_rmse, test_rmse, adj_r2s)
+
+
+kable(rmses_data, row.names = FALSE, align="c",
+     col.names = c("Model",
+                  "Train RMSE",
+                  "Test RMSE",
+                  "Adjusted R^2"),
+      digits = 88) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+
+Since `m1` model has lowest test and train RMSEs out of the 3 and highest adjusted $R^2$ while normality and constant variance assumptions are violated for all, I will select `m1` model as our best model.
+
+```{r fig.height=6, fig.width=9, warning = FALSE}
+plot(test_set$survival_time, predict(m1, test_set), col = "steelblue", xlab = "Actual values", ylab = "Predicted values", main = "Actual vs. Predicted for m3 Model")
+grid()
+abline(0, 1, col = "firebrick3", lwd = 2)
+```
+
+The plots of actual vs. predicted values for `survival_time` using the test data look good. Next, I will check for influential points. Then will refit the model with removed influential points to see if the model will perform any better and meet model assumptions.
+
+```{r}
+#influential data points
+inf_m1 = cooks.distance(m1) > 4 / length(cooks.distance(m1))
+cooks.distance(m1)[inf_m1]
+length(cooks.distance(m1)[inf_m1])
+```
+
+There are 96 influential points. I will remove them and refit the model.
+
+
+```{r}
+# Model 1 - Without Influential Points
+
+m1_removed_influ_train = train_set[!inf_m1,]
+
+
+m1_refit = lm(formula = survival_time ~ relapse_free + relapse_status + 
+              vital_status + npi + pr_status + age + chemo + inf_meno + 
+              survival + tumor_stage + relapse_status:vital_status + relapse_status:npi + 
+              relapse_free:relapse_status + relapse_free:vital_status + 
+              vital_status:npi + relapse_free:pr_status + relapse_status:age + 
+              vital_status:age + relapse_status:chemo + relapse_status:inf_meno + 
+              npi:pr_status + relapse_free:survival + relapse_status:tumor_stage + 
+              npi:chemo + pr_status:age + pr_status:inf_meno + pr_status:survival, 
+              data = m1_removed_influ_train)
+
+
+m1_rmse_refit = sqrt(mean(resid(m1_refit)^2))
+m1_r2_refit = get_adj_r2(m1_refit)
+
+
+
+rmse_and_r2_m1 = t(data.frame(m1_refit_RMSE = m1_rmse_refit, 
+                 m1_refit_r2 = m1_r2_refit))
+kable(rmse_and_r2_m1, col.names = "m1 removed influential") %>%
+
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+The adjusted RMSE have decreased and the adjusted $R^2$ have increased as we would expect.
+
+```{r fig.height=6, fig.width=9}
+
+par(mfrow = c(1, 2))
+qqplot(m1_refit, title = "m1_refit")
+plot_fit_resid(m1_refit, title = "m1_refit")
+```
+
+
+```{r}
+bptest(m1_refit)
+shapiro.test(resid(m1_refit))
+```
+
+The Fitted vs. Residuals plot and Q-Q plot looks slightly better. The p-values for BP test and Shapiro tests  have decreased. However, the normality and equal variance assumptions are still in violation.
+
+```{r warning = FALSE}
+#RMSE from both testing and training dataset
+m1_refit_RMSE_trn = calc_rmse(train_set$survival_time, predict(m1_refit, train_set))
+m1_refit_RMSE_tst = calc_rmse(test_set$survival_time, predict(m1_refit, test_set))
+
+
+rmse_train_test_m1 = data.frame(m1_refit_train_RMSE = m1_refit_RMSE_trn, 
+                 m1_refit_test_RMSE = m1_refit_RMSE_tst)
+kable(rmse_train_test_m1) %>%
+
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+```
+
+Because there is an increase in RMSE of the refitted model, removing influential points doesn't improve our model in terms of prediction. 
+
+```{r fig.height=6, fig.width=9, warning = FALSE}
+plot(test_set$survival_time, predict(m1_refit, test_set), col = "steelblue", xlab = "Actual values", ylab = "Predicted values", main = "Actual vs. Predicted for m1_refit Model")
+grid()
+abline(0, 1, col = "firebrick3", lwd = 2)
+```
+
+
+## Results and Discussion
+
+```{r}
+names(coef(m1))
+```
+
+
+The high $R^2$ value of `r m1_r2`  tells us that our model predictors are effective in explaining the variation in survival time. However, an RMSE of `r m1_rmse` seems too high to be useful in a real-world scenario. We would like to be able to predict a survival time of a patient with a much smaller margin of error. Our model also fails to meet the constant variance and normality assumptions.
+
+I would like to note that our dataset was small to begin with and it had a lot of missing values. A fair amount of data cleaning had to be performed just to be able to perform the analyses. And ideally, I would only consider data of patients that had already died due to breast cancer. Our dataset contains information on living patients and those that have died to other causes but removing this data would've left us with too little data to work with. Also, I'm only looking at clinical attributes of a patient in order to predict the survival time. In a real-world application, I would most likely consider other medical data such as genomic data to make these predictions.
+
+
+## Appendix
+
+Supplementary information on METABRIC dataset which includes description of `cohort`:
+
+https://www.thno.org/v08/p6386/thnov08p6386s1.pdf
+
+
+
+**Section 1.1**
+```{r}
+par(mfrow = c(1, 4))
+plot_fit_resid(add_model, title = "add_model")
+plot_fit_resid(m1, title = "m1")
+plot_fit_resid(m2, title = "m2")
+plot_fit_resid(m3, title = "m3")
+
+```
+```{r}
+par(mfrow = c(1, 4))
+qqplot(add_model, title = "add_model")
+qqplot(m1, title = "m1")
+qqplot(m2, title = "m2")
+qqplot(m3, title = "m3")
+```
+
+```{r}
+add_model_bp = bptest(add_model)$p.value
+m1_bp = bptest(m1)$p.value
+m2_bp = bptest(m2)$p.value
+m3_bp = bptest(m3)$p.value
+
+
+add_model_sh = shapiro.test((resid(add_model)))$p.value
+m1_sh = shapiro.test(resid(m1))$p.value
+m2_sh = shapiro.test(resid(m2))$p.value
+m3_sh = shapiro.test(resid(m3))$p.value
+
+model_names = c("add_model", "m1", "m2", "m3")
+bps = c(add_model_bp, m1_bp, m2_bp, m3_bp)
+shs = c(add_model_sh, m1_sh, m2_sh, m3_sh)
+
+model_data = data.frame(model_names,
+                       bps,
+                       shs)
+
+kable(model_data, row.names = FALSE, align="c",
+     col.names = c("Model",
+                   "BP Test P-value",
+                   "Shapiro Test P-value"),
+     digits = 88) %>%
+kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
